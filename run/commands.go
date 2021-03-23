@@ -1,8 +1,10 @@
 package run
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -20,19 +22,18 @@ func (t Task) Run() {
 type Command struct {
 	Command string   `yaml:"command"`
 	Args    []string `yaml:"args"`
+	RunIn   string   `yaml:"run_in"`
+	Dir     string   `yaml:"-"`
 }
 
 func (t Command) Run() {
-	// binary, lookErr := exec.LookPath(t.Command)
-	// if lookErr != nil {
-	// 	panic(lookErr)
-	// }
-	// err := syscall.Exec(binary, append([]string{t.Command}, t.Args...), os.Environ())
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-
+	// fmt.Printf("Run: %s [%s]\n", t.Command, t.Dir)
 	cmd := exec.Command(t.Command, t.Args...)
+	if t.RunIn != "" {
+		cmd.Dir = path.Join(t.Dir, t.RunIn)
+		fmt.Printf("  => %s\n", cmd.Dir)
+	}
+
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
@@ -44,13 +45,16 @@ func (t Command) Run() {
 
 type Tasks map[string]Task
 
-func (t Tasks) Append(tasks Tasks) {
+func (t Tasks) Append(tasks Tasks, dir string) {
 	for name, task := range tasks {
+		for idx := range task {
+			task[idx].Dir = dir
+		}
 		t[name] = task
 	}
 }
 
-func LoadGlobalTasks() Tasks {
+func LoadGlobalTasks(dir string) Tasks {
 	fpath := filepath.Join(os.Getenv("HOME"), ".config", "run", "tasks.yml")
 	content, _ := os.ReadFile(fpath)
 
@@ -59,16 +63,8 @@ func LoadGlobalTasks() Tasks {
 
 	loaded_tasks := Tasks{}
 
-	// keys := []string{"global", pwd}
-
-	pwd, _ := os.Getwd()
-	// home := os.Getenv("HOME")
-	// if strings.HasPrefix(pwd, home) {
-	// 	keys = append(keys, strings.Replace(pwd, home, "~", 1))
-	// }
-
 	if tasks, ok := tasks_map["global"]; ok {
-		loaded_tasks.Append(tasks)
+		loaded_tasks.Append(tasks, dir)
 	}
 
 	for key, tasks := range tasks_map {
@@ -76,8 +72,9 @@ func LoadGlobalTasks() Tasks {
 			continue
 		}
 
-		if isSub(pwd, abs(key)) {
-			loaded_tasks.Append(tasks)
+		// fmt.Printf("isSub(%s, abs(%s)) => %v\n", dir, key, isSub(dir, abs(key)))
+		if isSub(dir, abs(key)) {
+			loaded_tasks.Append(tasks, abs(key))
 		}
 	}
 
@@ -85,18 +82,8 @@ func LoadGlobalTasks() Tasks {
 }
 
 func GetTasks() Tasks {
-	return LoadGlobalTasks()
-	// return Tasks{
-	// 	"tree": Task{
-	// 		Command: "tree",
-	// 	},
-	// 	"vim": Task{
-	// 		Command: "vim",
-	// 	},
-	// 	"nvim": Task{
-	// 		Command: "nvim",
-	// 	},
-	// }
+	pwd, _ := os.Getwd()
+	return LoadGlobalTasks(pwd)
 }
 
 func (t Tasks) Run(name string) {
@@ -109,15 +96,14 @@ func isSub(dir, parent string) bool {
 	if dir == parent {
 		return true
 	}
-	return strings.HasPrefix(parent+"/", dir)
+	return strings.HasPrefix(dir, parent+"/")
 }
 
 func abs(dir string) string {
-	pwd, _ := os.Getwd()
 	home := os.Getenv("HOME")
 
 	if strings.HasPrefix(dir, "~") {
-		return strings.Replace(pwd, "~", home, 1)
+		return strings.Replace(dir, "~", home, 1)
 	}
 
 	return dir
