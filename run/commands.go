@@ -2,6 +2,8 @@ package run
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -20,6 +22,8 @@ func (t Task) Run() {
 }
 
 type Command struct {
+	Shell   string   `yaml:"shell"`
+	Script  string   `yaml:"script"`
 	Command string   `yaml:"command"`
 	Args    []string `yaml:"args"`
 	RunIn   string   `yaml:"run_in"`
@@ -27,18 +31,45 @@ type Command struct {
 }
 
 func (t Command) Run() {
-	// fmt.Printf("Run: %s [%s]\n", t.Command, t.Dir)
-	cmd := exec.Command(t.Command, t.Args...)
-	if t.RunIn != "" {
-		cmd.Dir = path.Join(t.Dir, t.RunIn)
-		fmt.Printf("  => %s\n", cmd.Dir)
+	if t.Command != "" {
+		// fmt.Printf("Run: %s [%s]\n", t.Command, t.Dir)
+		cmd := exec.Command(t.Command, t.Args...)
+		if t.RunIn != "" {
+			cmd.Dir = path.Join(t.Dir, t.RunIn)
+			// fmt.Printf("  => %s\n", cmd.Dir)
+		}
+
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+
+		cmd.Run()
 	}
 
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
+	if t.Shell != "" {
+		file, err := ioutil.TempFile("", "run-script")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.Remove(file.Name())
 
-	cmd.Run()
+		filePath := file.Name()
+		fmt.Println(filePath)
+
+		ioutil.WriteFile(filePath, []byte(t.Script), 0777)
+
+		cmd := exec.Command(t.Shell, filePath)
+		if t.RunIn != "" {
+			cmd.Dir = path.Join(t.Dir, t.RunIn)
+			fmt.Printf("  => %s\n", cmd.Dir)
+		}
+
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+
+		cmd.Run()
+	}
 
 	// log.Println("run1")
 }
