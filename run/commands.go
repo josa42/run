@@ -1,7 +1,6 @@
 package run
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -15,38 +14,41 @@ import (
 
 type Task []Command
 
-func (t Task) Run() {
+func (t Task) Run(tasks Tasks) {
 	for _, c := range t {
-		c.Run()
+		c.Run(tasks)
 	}
 }
 
 type Command struct {
-	Shell   string   `yaml:"shell"`
-	Script  string   `yaml:"script"`
+	RunIn string `yaml:"run_in"`
+	Dir   string `yaml:"-"`
+
+	// Shell:
+	// - shell: bash
+	//   script: |
+	//     echo "Hello World!"
+	Shell  string `yaml:"shell"`
+	Script string `yaml:"script"`
+
+	// Command:
+	// - shell: echo
+	//   args: ["Hello World!"]
 	Command string   `yaml:"command"`
 	Args    []string `yaml:"args"`
-	RunIn   string   `yaml:"run_in"`
-	Dir     string   `yaml:"-"`
+
+	// Task:
+	// - task: <task-name>
+	Task string
 }
 
-func (t Command) Run() {
-	if t.Command != "" {
-		// fmt.Printf("Run: %s [%s]\n", t.Command, t.Dir)
-		cmd := exec.Command(t.Command, t.Args...)
-		if t.RunIn != "" {
-			cmd.Dir = path.Join(t.Dir, t.RunIn)
-			// fmt.Printf("  => %s\n", cmd.Dir)
-		}
-
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-
-		cmd.Run()
+func (c Command) Run(tasks Tasks) {
+	if c.Command != "" {
+		c.exec(c.Command, c.Args...)
+		return
 	}
 
-	if t.Shell != "" {
+	if c.Shell != "" {
 		file, err := ioutil.TempFile("", "run-script")
 		if err != nil {
 			log.Fatal(err)
@@ -54,24 +56,32 @@ func (t Command) Run() {
 		defer os.Remove(file.Name())
 
 		filePath := file.Name()
-		fmt.Println(filePath)
 
-		ioutil.WriteFile(filePath, []byte(t.Script), 0777)
+		ioutil.WriteFile(filePath, []byte(c.Script), 0777)
 
-		cmd := exec.Command(t.Shell, filePath)
-		if t.RunIn != "" {
-			cmd.Dir = path.Join(t.Dir, t.RunIn)
-			fmt.Printf("  => %s\n", cmd.Dir)
-		}
-
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-
-		cmd.Run()
+		c.exec(c.Shell, filePath)
+		return
 	}
 
-	// log.Println("run1")
+	if c.Task != "" {
+		if task, ok := tasks[c.Task]; ok {
+			task.Run(tasks)
+			return
+		}
+	}
+}
+
+func (c Command) exec(command string, args ...string) {
+	cmd := exec.Command(command, args...)
+	if c.RunIn != "" {
+		cmd.Dir = path.Join(c.Dir, c.RunIn)
+	}
+
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+
+	cmd.Run()
 }
 
 type Tasks map[string]Task
@@ -131,7 +141,7 @@ func GetTasks() Tasks {
 
 func (t Tasks) Run(name string) {
 	if task, ok := t[name]; ok {
-		task.Run()
+		task.Run(t)
 	}
 }
 
