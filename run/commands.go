@@ -85,14 +85,12 @@ func (t Tasks) Append(tasks Tasks, dir string) {
 	}
 }
 
-func LoadGlobalTasks(dir string) Tasks {
+func LoadGlobalTasks(loaded_tasks *Tasks, dir string) {
 	fpath := filepath.Join(os.Getenv("HOME"), ".config", "run", "tasks.yml")
 	content, _ := os.ReadFile(fpath)
 
 	tasks_map := map[string]Tasks{}
 	yaml.Unmarshal(content, &tasks_map)
-
-	loaded_tasks := Tasks{}
 
 	if tasks, ok := tasks_map["global"]; ok {
 		loaded_tasks.Append(tasks, dir)
@@ -108,13 +106,27 @@ func LoadGlobalTasks(dir string) Tasks {
 			loaded_tasks.Append(tasks, abs(key))
 		}
 	}
+}
 
-	return loaded_tasks
+func LoadLocalTasks(loaded_tasks *Tasks, dir string) {
+	// TODO find up the dir tree
+	fpath := filepath.Join(dir, "tasks.yml")
+	content, _ := os.ReadFile(fpath)
+
+	tasks := Tasks{}
+	yaml.Unmarshal(content, &tasks)
+
+	loaded_tasks.Append(tasks, dir)
 }
 
 func GetTasks() Tasks {
 	pwd, _ := os.Getwd()
-	return LoadGlobalTasks(pwd)
+	loaded_tasks := Tasks{}
+
+	LoadGlobalTasks(&loaded_tasks, pwd)
+	LoadLocalTasks(&loaded_tasks, pwd)
+
+	return loaded_tasks
 }
 
 func (t Tasks) Run(name string) {
