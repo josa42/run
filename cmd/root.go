@@ -15,7 +15,8 @@ import (
 var cfgFile string
 
 var rootCmd = &cobra.Command{
-	Use: "run",
+	Use:  "run",
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		tasks := run.GetTasks()
 		tasks.Run(args[0])

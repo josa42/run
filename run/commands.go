@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/josa42/run/pkg/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -111,7 +112,6 @@ func LoadGlobalTasks(loaded_tasks *Tasks, dir string) {
 			continue
 		}
 
-		// fmt.Printf("isSub(%s, abs(%s)) => %v\n", dir, key, isSub(dir, abs(key)))
 		if isSub(dir, abs(key)) {
 			loaded_tasks.Append(tasks, abs(key))
 		}
@@ -119,7 +119,6 @@ func LoadGlobalTasks(loaded_tasks *Tasks, dir string) {
 }
 
 func LoadLocalTasks(loaded_tasks *Tasks, dir string) {
-	// TODO find up the dir tree
 	fpath := filepath.Join(dir, "tasks.yml")
 	content, _ := os.ReadFile(fpath)
 
@@ -133,8 +132,14 @@ func GetTasks() Tasks {
 	pwd, _ := os.Getwd()
 	loaded_tasks := Tasks{}
 
-	LoadGlobalTasks(&loaded_tasks, pwd)
-	LoadLocalTasks(&loaded_tasks, pwd)
+	dir, _ := utils.FindUp(pwd, "tasks.yml")
+	if dir != "" {
+		LoadLocalTasks(&loaded_tasks, dir)
+
+	} else {
+		LoadGlobalTasks(&loaded_tasks, pwd)
+		LoadLocalTasks(&loaded_tasks, pwd)
+	}
 
 	return loaded_tasks
 }
