@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/josa42/run/pkg/utils"
 	"gopkg.in/yaml.v2"
@@ -105,8 +106,11 @@ func loadGlobalTasks(loaded_tasks *Tasks, dir string) {
 			continue
 		}
 
-		if utils.IsSubDir(dir, utils.Abs(key)) {
-			loaded_tasks.Append(tasks, utils.Abs(key))
+		for _, ikey := range strings.Split(key, "|") {
+			if ok, cdir := utils.IsSubDir(dir, utils.Abs(ikey)); ok {
+				loaded_tasks.Append(tasks, cdir)
+				break
+			}
 		}
 	}
 }
