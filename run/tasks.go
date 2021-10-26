@@ -128,5 +128,9 @@ func loadProjectTasks(loaded_tasks *Tasks, dir string) {
 func (t Tasks) Run(name string) {
 	if task, ok := t[name]; ok {
 		task.Run(t)
+		return
 	}
+
+	// TODO log error
+	os.Exit(1)
 }
