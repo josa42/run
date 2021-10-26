@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -53,6 +55,11 @@ fish:
 		if targetPath == "" {
 			target = os.Stdout
 		} else {
+			dir := filepath.Dir(targetPath)
+			os.MkdirAll("/tmp/foo/bar/josa", 0644)
+			if _, err := os.Stat(dir); os.IsNotExist(err) {
+				fmt.Println(dir)
+			}
 			target, _ = os.OpenFile(targetPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		}
 
