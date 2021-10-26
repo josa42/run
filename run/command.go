@@ -1,74 +1,36 @@
 package run
 
 import (
-	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path"
 )
 
-var _ Step = &Command{}
+var _ Step = &CommandStep{}
 
-type Command struct {
-	RunIn string `yaml:"run_in"`
-	Dir   string `yaml:"-"`
-
-	// Shell:
-	// - shell: bash
-	//   script: |
-	//     echo "Hello World!"
-	Shell  string `yaml:"shell"`
-	Script string `yaml:"script"`
-
-	// Command:
-	// - shell: echo
+type CommandStep struct {
+	// - command: echo
 	//   args: ["Hello World!"]
 	Command string   `yaml:"command"`
 	Args    []string `yaml:"args"`
-
-	// Task:
-	// - task: <task-name>
-	Task string
+	RunIn   string   `yaml:"run-in"`
+	dir     string   `yaml:"-"`
 }
 
-func (c *Command) SetDir(dir string) {
-	c.Dir = dir
+func (c *CommandStep) SetDir(dir string) {
+	c.dir = dir
 }
 
-func (c Command) Run(tasks Tasks) {
-	if c.Command != "" {
-		c.exec(c.Command, c.Args...)
-		return
-	}
-
-	if c.Shell != "" {
-		file, err := ioutil.TempFile("", "run-script")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.Remove(file.Name())
-
-		filePath := file.Name()
-
-		ioutil.WriteFile(filePath, []byte(c.Script), 0777)
-
-		c.exec(c.Shell, filePath)
-		return
-	}
-
-	if c.Task != "" {
-		if task, ok := tasks[c.Task]; ok {
-			task.Run(tasks)
-			return
-		}
-	}
+func (c CommandStep) Run(tasks Tasks) {
+	c.exec(c.Command, c.Args...)
 }
 
-func (c Command) exec(command string, args ...string) {
+func (c CommandStep) exec(command string, args ...string) {
 	cmd := exec.Command(command, args...)
 	if c.RunIn != "" {
-		cmd.Dir = path.Join(c.Dir, c.RunIn)
+		cmd.Dir = path.Join(c.dir, c.RunIn)
+	} else {
+		cmd.Dir = c.dir
 	}
 
 	cmd.Stderr = os.Stderr

@@ -1,6 +1,7 @@
 package run
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -13,20 +14,60 @@ type Step interface {
 	SetDir(dir string)
 }
 
-type Task []Command
+type Task struct {
+	Steps []Step
+}
 
 func (t Task) Run(tasks Tasks) {
-	for _, c := range t {
+	for _, c := range t.Steps {
 		c.Run(tasks)
 	}
+}
+
+type stepRaw struct{}
+
+func (t *Task) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	data := []interface{}{}
+	unmarshal(&data)
+
+	commands := []CommandStep{}
+	unmarshal(&commands)
+
+	shellSteps := []ShellStep{}
+	unmarshal(&shellSteps)
+
+	taskSteps := []TaskStep{}
+	unmarshal(&taskSteps)
+
+	t.Steps = []Step{}
+	for idx := range data {
+		if commands[idx].Command != "" {
+			t.Steps = append(t.Steps, &commands[idx])
+
+		} else if shellSteps[idx].Shell != "" {
+			t.Steps = append(t.Steps, &shellSteps[idx])
+
+		} else if taskSteps[idx].Task != "" {
+			t.Steps = append(t.Steps, &taskSteps[idx])
+
+		} else {
+			func(v interface{}) {
+				s, _ := yaml.Marshal(v)
+				fmt.Printf("%s\n", s)
+			}(data[idx])
+			panic("Unknown step")
+		}
+	}
+
+	return nil
 }
 
 type Tasks map[string]Task
 
 func (t Tasks) Append(tasks Tasks, dir string) {
 	for name, task := range tasks {
-		for idx := range task {
-			task[idx].SetDir(dir)
+		for idx := range task.Steps {
+			task.Steps[idx].SetDir(dir)
 		}
 		t[name] = task
 	}
@@ -39,10 +80,10 @@ func GetTasks() Tasks {
 	dir, _ := utils.FindUp(pwd, "tasks.yml")
 	if dir != "" {
 		loadProjectTasks(&loaded_tasks, dir)
+		loadGlobalTasks(&loaded_tasks, dir)
 
 	} else {
 		loadGlobalTasks(&loaded_tasks, pwd)
-		loadProjectTasks(&loaded_tasks, pwd)
 	}
 
 	return loaded_tasks
