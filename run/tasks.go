@@ -34,8 +34,8 @@ func (t *Task) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	commands := []CommandStep{}
 	unmarshal(&commands)
 
-	shellSteps := []ShellStep{}
-	unmarshal(&shellSteps)
+	runSteps := []RunStep{}
+	unmarshal(&runSteps)
 
 	taskSteps := []TaskStep{}
 	unmarshal(&taskSteps)
@@ -45,8 +45,8 @@ func (t *Task) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if commands[idx].Command != "" {
 			t.Steps = append(t.Steps, &commands[idx])
 
-		} else if shellSteps[idx].Shell != "" {
-			t.Steps = append(t.Steps, &shellSteps[idx])
+		} else if runSteps[idx].RunScript != "" || runSteps[idx].Script != "" {
+			t.Steps = append(t.Steps, &runSteps[idx])
 
 		} else if taskSteps[idx].Task != "" {
 			t.Steps = append(t.Steps, &taskSteps[idx])
