@@ -13,11 +13,28 @@ import (
 )
 
 var cfgFile string
+var Version = "development"
 
 var rootCmd = &cobra.Command{
-	Use:  "run",
-	Args: cobra.ExactArgs(1),
+	Use: "run",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if ok, _ := cmd.Flags().GetBool("version"); ok {
+			if len(args) != 0 {
+				return fmt.Errorf("accepts no argss, received %d", len(args))
+			}
+		} else if len(args) != 1 {
+			return fmt.Errorf("accepts 1 arg, received %d", len(args))
+		}
+
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
+
+		if ok, _ := cmd.Flags().GetBool("version"); ok {
+			fmt.Println(Version)
+			os.Exit(0)
+		}
+
 		tasks := run.GetTasks()
 		tasks.Run(args[0])
 	},
@@ -31,5 +48,5 @@ func Execute() {
 }
 
 func init() {
-	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().BoolP("version", "", false, "Show version")
 }
