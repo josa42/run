@@ -1,0 +1,57 @@
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - goos:
+    - linux
+    - darwin
+
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      386: i386
+      amd64: x86_64
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^ci:'
+      - '^chore:'
+      - '^docs:'
+      - '^test:'
+
+brews:
+  - tap:
+      owner: josa42
+      name: homebrew-misc
+      branch: master
+
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@gesell.me
+
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    homepage: "https://github.com/josa42/run"
+
+    license: "MIT"
+
+    dependencies:
+      - name: go
+        type: build
+
+    install: |
+      bin.install "run"
+
+release:
+  prerelease: auto
