@@ -15,11 +15,10 @@ type RunStep struct {
 	// - shell: bash
 	//   script: |
 	//     echo "Hello World!"
-	RunScript string `yaml:"run"`
-	Script    string `yaml:"script"`
-	Shell     string `yaml:"shell"`
-	RunIn     string `yaml:"run-in"`
-	dir       string `yaml:"-"`
+	Script string `yaml:"run"`
+	Shell  string `yaml:"shell"`
+	RunIn  string `yaml:"run-in"`
+	dir    string `yaml:"-"`
 }
 
 func (c *RunStep) SetDir(dir string) {
@@ -39,11 +38,7 @@ func (c RunStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 		shell = "bash"
 	}
 
-	script := c.RunScript
-	if script == "" {
-		// TODO echo deprecation
-		script = c.Script
-	}
+	script := c.Script
 
 	ioutil.WriteFile(filePath, []byte(script), 0777)
 

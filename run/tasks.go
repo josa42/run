@@ -96,7 +96,7 @@ func (t *Task) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	t.Steps = []Step{}
 	for idx := range data {
-		if runSteps[idx].RunScript != "" || runSteps[idx].Script != "" {
+		if runSteps[idx].Script != "" {
 			t.Steps = append(t.Steps, &runSteps[idx])
 
 		} else if taskSteps[idx].Task != "" {
