@@ -2,14 +2,21 @@ package run
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
+
+	"github.com/fatih/color"
+	"github.com/josa42/run/pkg/prefixwriter"
 )
 
 var _ Step = &RunStep{}
+
+var index = 0
 
 type RunStep struct {
 	// - shell: bash
@@ -42,8 +49,18 @@ func (c RunStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 
 	ioutil.WriteFile(filePath, []byte(script), 0777)
 
+	index += 1
+	prefix := fmt.Sprintf("[%d]", index)
+
+	lines := strings.Split(script, "\n")
+	cmd := lines[0]
+	if len(lines) > 1 {
+		cmd += " (...)"
+	}
+	fmt.Print(color.BlueString("%s %s\n", prefix, cmd))
+
 	done := make(chan struct{})
-	execDone, cancel := c.exec(shell, filePath)
+	execDone, cancel := c.exec(prefix, shell, filePath)
 
 	go func() {
 		<-execDone
@@ -54,7 +71,7 @@ func (c RunStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 	return done, cancel
 }
 
-func (c RunStep) exec(command string, args ...string) (chan struct{}, CancelFunc) {
+func (c RunStep) exec(prefix string, command string, args ...string) (chan struct{}, CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cmd := exec.CommandContext(ctx, command, args...)
 
@@ -64,14 +81,18 @@ func (c RunStep) exec(command string, args ...string) (chan struct{}, CancelFunc
 		cmd.Dir = c.dir
 	}
 
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
+	stdout := prefixwriter.New(os.Stderr, color.GreenString(prefix))
+	stderr := prefixwriter.New(os.Stdout, color.RedString(prefix))
+
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 
 	done := make(chan struct{})
 
 	go func() {
 		cmd.Run()
+		stdout.Close()
+		stderr.Close()
 		close(done)
 	}()
 

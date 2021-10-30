@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/dc0d/retry v1.2.0
+	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gobwas/glob v0.2.3
 	github.com/kr/pretty v0.2.0 // indirect
