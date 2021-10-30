@@ -28,6 +28,12 @@
         },
         {
           "$ref": "#/definitions/task"
+        },
+        {
+          "$ref": "#/definitions/watch"
+        },
+        {
+          "$ref": "#/definitions/parallel"
         }
       ]
     },
@@ -47,7 +53,7 @@
       "required": [
         "command"
       ],
-      "additionalItems": false
+      "additionalProperties": false
     },
     "run": {
       "type": "object",
@@ -71,7 +77,7 @@
       "required": [
         "run"
       ],
-      "additionalItems": false
+      "additionalProperties": false
     },
     "task": {
       "type": "object",
@@ -83,17 +89,58 @@
       "required": [
         "task"
       ],
+      "additionalProperties": false
+    },
+    "watch": {
+      "type": "object",
+      "properties": {
+        "watch": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "additionalItems": false
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "additionalItems": false
+        },
+        "do": {
+          "$ref": "#/definitions/steps"
+        }
+      },
+      "required": [
+        "watch"
+      ],
+      "additionalProperties": false
+    },
+    "parallel": {
+      "type": "object",
+      "properties": {
+        "parallel": {
+          "$ref": "#/definitions/steps"
+        }
+      },
+      "required": [
+        "parallel"
+      ],
+      "additionalProperties": false
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/step"
+      },
       "additionalItems": false
     },
     "tasks": {
       "type": "object",
       "patternProperties": {
         "^.*$": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/step"
-          },
-          "additionalItems": false
+          "$ref": "#/definitions/steps"
         }
       },
       "minProperties": 1,
