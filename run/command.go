@@ -1,6 +1,7 @@
 package run
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path"
@@ -21,12 +22,13 @@ func (c *CommandStep) SetDir(dir string) {
 	c.dir = dir
 }
 
-func (c CommandStep) Run(tasks Tasks) {
-	c.exec(c.Command, c.Args...)
+func (c CommandStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
+	return c.exec(c.Command, c.Args...)
 }
 
-func (c CommandStep) exec(command string, args ...string) {
-	cmd := exec.Command(command, args...)
+func (c CommandStep) exec(command string, args ...string) (chan struct{}, CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cmd := exec.CommandContext(ctx, command, args...)
 	if c.RunIn != "" {
 		cmd.Dir = path.Join(c.dir, c.RunIn)
 	} else {
@@ -37,5 +39,12 @@ func (c CommandStep) exec(command string, args ...string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 
-	cmd.Run()
+	done := make(chan struct{})
+
+	go func() {
+		cmd.Run()
+		close(done)
+	}()
+
+	return done, func() { cancel() }
 }

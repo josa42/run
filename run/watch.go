@@ -18,13 +18,19 @@ type WatchStep struct {
 
 func (c *WatchStep) SetDir(dir string) {}
 
-func (c WatchStep) Run(tasks Tasks) {
+func (c WatchStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 	m := watcher.NewMatcher(c.Watch)
+	var cancelFn CancelFunc
 
 	notify := func(ev watcher.Event) {
 		if ev.Is(fsnotify.Create, fsnotify.Write) && m.Match(ev.Name) {
 			fmt.Printf("=> %s: %s\n", ev.Op, ev.Name)
-			c.Do.Run(tasks)
+			if cancelFn != nil {
+				cancelFn()
+			}
+			_, cancel := c.Do.Run(tasks)
+
+			cancelFn = cancel
 		}
 	}
 
@@ -33,8 +39,14 @@ func (c WatchStep) Run(tasks Tasks) {
 		watcher.Exclude("*/.git/*", "**/*~", "**/node_modules/**"),
 		watcher.Exclude(c.Exclude...),
 	)
-	defer watcher.Stop()
 	watcher.Add(".", true)
 
-	utils.WaitForKill()
+	done := make(chan struct{})
+	go func() {
+		utils.WaitForKill()
+		watcher.Stop()
+		close(done)
+	}()
+
+	return done, func() {}
 }

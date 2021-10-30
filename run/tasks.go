@@ -11,7 +11,7 @@ import (
 )
 
 type Step interface {
-	Run(tasks Tasks)
+	Run(tasks Tasks) (chan struct{}, CancelFunc)
 	SetDir(dir string)
 }
 
@@ -19,9 +19,30 @@ type Task struct {
 	Steps []Step
 }
 
-func (t Task) Run(tasks Tasks) {
-	for _, c := range t.Steps {
-		c.Run(tasks)
+func (t Task) Run(tasks Tasks) (chan struct{}, CancelFunc) {
+	fns := []CancelFunc{}
+	canceled := false
+
+	done := make(chan struct{})
+	go func() {
+		for _, c := range t.Steps {
+			runDone, cancel := c.Run(tasks)
+
+			fns = append(fns, cancel)
+			<-runDone
+
+			if canceled {
+				break
+			}
+		}
+		close(done)
+	}()
+
+	return done, func() {
+		canceled = true
+		for _, cancel := range fns {
+			cancel()
+		}
 	}
 }
 
@@ -133,7 +154,8 @@ func loadProjectTasks(loaded_tasks *Tasks, dir string) {
 
 func (t Tasks) Run(name string) {
 	if task, ok := t[name]; ok {
-		task.Run(t)
+		done, _ := task.Run(t)
+		<-done
 		return
 	}
 

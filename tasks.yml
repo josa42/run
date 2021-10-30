@@ -4,3 +4,17 @@ test_watch:
   - watch: ["**/*.go"]
     do:
       - task: test
+sleep:
+  - run: |
+      t=$(date)
+      echo "start: $t"
+      while true; do
+        sleep 1
+        echo "run: $t"
+      done
+
+sleep_watch:
+  - watch: ["**/*.go"]
+    do:
+      - task: sleep
+      - run: echo "WTF?"

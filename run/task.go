@@ -10,9 +10,10 @@ type TaskStep struct {
 
 func (c *TaskStep) SetDir(dir string) {}
 
-func (c TaskStep) Run(tasks Tasks) {
+func (c TaskStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 	if task, ok := tasks[c.Task]; ok {
-		task.Run(tasks)
-		return
+		return task.Run(tasks)
 	}
+
+	return nil, func() {}
 }

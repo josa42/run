@@ -1,6 +1,7 @@
 package run
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"os"
@@ -25,12 +26,11 @@ func (c *RunStep) SetDir(dir string) {
 	c.dir = dir
 }
 
-func (c RunStep) Run(tasks Tasks) {
+func (c RunStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 	file, err := ioutil.TempFile("", "run-script")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.Remove(file.Name())
 
 	filePath := file.Name()
 
@@ -47,12 +47,22 @@ func (c RunStep) Run(tasks Tasks) {
 
 	ioutil.WriteFile(filePath, []byte(script), 0777)
 
-	c.exec(shell, filePath)
-	return
+	done := make(chan struct{})
+	execDone, cancel := c.exec(shell, filePath)
+
+	go func() {
+		<-execDone
+		os.Remove(file.Name())
+		close(done)
+	}()
+
+	return done, cancel
 }
 
-func (c RunStep) exec(command string, args ...string) {
-	cmd := exec.Command(command, args...)
+func (c RunStep) exec(command string, args ...string) (chan struct{}, CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cmd := exec.CommandContext(ctx, command, args...)
+
 	if c.RunIn != "" {
 		cmd.Dir = path.Join(c.dir, c.RunIn)
 	} else {
@@ -63,5 +73,12 @@ func (c RunStep) exec(command string, args ...string) {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 
-	cmd.Run()
+	done := make(chan struct{})
+
+	go func() {
+		cmd.Run()
+		close(done)
+	}()
+
+	return done, func() { cancel() }
 }
