@@ -48,10 +48,6 @@ brews:
 
     license: "MIT"
 
-    dependencies:
-      - name: go
-        type: build
-
     install: |
       bin.install "run"
 
