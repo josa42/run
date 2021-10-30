@@ -8,7 +8,7 @@ builds:
     - linux
     - darwin
     ldflags:
-      - -s -w -X 'github.com/josa42/run/cmd.Version={{.Version}}a'
+      - -s -w -X 'github.com/josa42/run/cmd.Version={{.Version}}'
 
 archives:
   - replacements:
