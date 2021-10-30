@@ -18,3 +18,41 @@ sleep_watch:
     do:
       - task: sleep
       - run: echo "WTF?"
+
+sleep_parallel:
+  - parallel:
+    - run: |
+        t=$(date)
+        echo "start 1: $t"
+        while true; do
+          sleep 1
+          echo "run   1: $t"
+        done
+    - run: |
+        t=$(date)
+        echo "start 2: $t"
+        while true; do
+          sleep 1
+          echo "run   2: $t"
+        done
+
+sleep_watch_parallel:
+  - watch: ["**"]
+    do:
+      - parallel:
+        - run: |
+            t=$(date)
+            echo "start 1: $t"
+            while true; do
+              sleep 1
+              echo "run   1: $t"
+            done
+        - run: |
+            t=$(date)
+            echo "start 2: $t"
+            while true; do
+              sleep 1
+              echo "run   2: $t"
+            done
+
+
