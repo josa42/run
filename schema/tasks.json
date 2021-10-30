@@ -37,24 +37,6 @@
         }
       ]
     },
-    "command": {
-      "type": "object",
-      "properties": {
-        "command": {
-          "type": "string"
-        },
-        "args": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "command"
-      ],
-      "additionalProperties": false
-    },
     "run": {
       "type": "object",
       "properties": {
