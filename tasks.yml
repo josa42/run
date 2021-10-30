@@ -1,2 +1,6 @@
 test:
   - run: go test ./...
+test_watch:
+  - watch: ["**/*.go"]
+    do:
+      - task: test
