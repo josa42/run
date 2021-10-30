@@ -40,6 +40,9 @@ func (t *Task) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	taskSteps := []TaskStep{}
 	unmarshal(&taskSteps)
 
+	watchSteps := []WatchStep{}
+	unmarshal(&watchSteps)
+
 	t.Steps = []Step{}
 	for idx := range data {
 		if commands[idx].Command != "" {
@@ -50,6 +53,9 @@ func (t *Task) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 		} else if taskSteps[idx].Task != "" {
 			t.Steps = append(t.Steps, &taskSteps[idx])
+
+		} else if watchSteps[idx].Watch != nil {
+			t.Steps = append(t.Steps, &watchSteps[idx])
 
 		} else {
 			func(v interface{}) {
