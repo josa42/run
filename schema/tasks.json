@@ -21,9 +21,6 @@
     "step": {
       "oneOf": [
         {
-          "$ref": "#/definitions/command"
-        },
-        {
           "$ref": "#/definitions/run"
         },
         {
