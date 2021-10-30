@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/josa42/run/pkg/utils"
 	"gopkg.in/yaml.v2"
@@ -46,6 +47,35 @@ func (t Task) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 	}
 }
 
+func (t Task) RunParallel(tasks Tasks) (chan struct{}, CancelFunc) {
+	fns := []CancelFunc{}
+
+	var wait sync.WaitGroup
+	wait.Add(len(t.Steps))
+
+	for _, c := range t.Steps {
+		done, cancel := c.Run(tasks)
+
+		fns = append(fns, cancel)
+		go func() {
+			<-done
+			wait.Done()
+		}()
+	}
+
+	done := make(chan struct{})
+	go func() {
+		wait.Wait()
+		close(done)
+	}()
+
+	return done, func() {
+		for _, cancel := range fns {
+			cancel()
+		}
+	}
+}
+
 type stepRaw struct{}
 
 func (t *Task) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -64,6 +94,9 @@ func (t *Task) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	watchSteps := []WatchStep{}
 	unmarshal(&watchSteps)
 
+	parallelSteps := []ParallelStep{}
+	unmarshal(&parallelSteps)
+
 	t.Steps = []Step{}
 	for idx := range data {
 		if commands[idx].Command != "" {
@@ -77,6 +110,9 @@ func (t *Task) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 		} else if watchSteps[idx].Watch != nil {
 			t.Steps = append(t.Steps, &watchSteps[idx])
+
+		} else if parallelSteps[idx].Parallel.Steps != nil {
+			t.Steps = append(t.Steps, &parallelSteps[idx])
 
 		} else {
 			func(v interface{}) {
