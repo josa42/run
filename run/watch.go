@@ -3,6 +3,7 @@ package run
 import (
 	"fmt"
 
+	"github.com/fatih/color"
 	"github.com/fsnotify/fsnotify"
 	"github.com/josa42/run/pkg/utils"
 	"github.com/josa42/run/pkg/watcher"
@@ -22,9 +23,10 @@ func (c WatchStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 	m := watcher.NewMatcher(c.Watch)
 	var cancelFn CancelFunc
 
-	notify := func(ev watcher.Event) {
-		if ev.Is(fsnotify.Create, fsnotify.Write) && m.Match(ev.Name) {
-			fmt.Printf("=> %s: %s\n", ev.Op, ev.Name)
+	notify := func(evt watcher.Event) {
+		if evt.Is(fsnotify.Create, fsnotify.Write) && m.Match(evt.Name) {
+			fmt.Print(color.BlueString("%s %s\n", evt.Op, evt.Name))
+
 			if cancelFn != nil {
 				cancelFn()
 			}
