@@ -50,7 +50,11 @@ func (c RunStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 	ioutil.WriteFile(filePath, []byte(script), 0777)
 
 	index += 1
+
 	prefix := fmt.Sprintf("[%d]", index)
+	if c.RunIn != "" && c.RunIn != "." {
+		prefix = fmt.Sprintf("[%d:%s]", index, c.RunIn)
+	}
 
 	lines := strings.Split(script, "\n")
 	cmd := lines[0]

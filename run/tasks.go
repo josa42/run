@@ -1,6 +1,7 @@
 package run
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,6 +39,9 @@ func GetTasks() Tasks {
 	dir, _ := utils.FindUp(pwd, "tasks.yml")
 	if dir != "" {
 		loadProjectTasks(&loaded_tasks, dir)
+		loadGlobalTasks(&loaded_tasks, dir)
+
+	} else if dir := utils.FindProjectRoot(pwd); dir != "" {
 		loadGlobalTasks(&loaded_tasks, dir)
 
 	} else {
@@ -79,5 +83,6 @@ func loadProjectTasks(loaded_tasks *Tasks, dir string) {
 	tasks := Tasks{}
 	yaml.Unmarshal(content, &tasks)
 
+	fmt.Printf("=========================================================================================> %s => %s\n", fpath, dir)
 	loaded_tasks.Append(tasks, dir)
 }

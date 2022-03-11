@@ -17,7 +17,11 @@ type WatchStep struct {
 	Do      Task     `yaml:"do"`
 }
 
-func (c *WatchStep) SetDir(dir string) {}
+func (c *WatchStep) SetDir(dir string) {
+	for _, s := range c.Do.Steps {
+		s.SetDir(dir)
+	}
+}
 
 func (c WatchStep) Run(tasks Tasks) (chan struct{}, CancelFunc) {
 	m := watcher.NewMatcher(c.Watch)

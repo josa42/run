@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	notFound = errors.New("Not found")
-	home     = os.Getenv("HOME")
+	notFound  = errors.New("Not found")
+	home      = os.Getenv("HOME")
+	rootFiles = []string{".git", "go.mod", "package.json"}
 )
 
 func FindUp(dir string, name string) (string, error) {
@@ -28,4 +29,14 @@ func FindUp(dir string, name string) (string, error) {
 	}
 
 	return dir, nil
+}
+
+func FindProjectRoot(dir string) string {
+	for _, file := range rootFiles {
+		if root, _ := FindUp(dir, file); root != "" {
+			return root
+		}
+	}
+
+	return ""
 }
